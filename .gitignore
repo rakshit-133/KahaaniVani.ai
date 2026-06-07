@@ -1,2 +1,4 @@
-backend/venv/
 .env
+venv/
+__pycache__/
+emotion_model/
