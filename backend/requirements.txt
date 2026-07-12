@@ -1,9 +1,12 @@
 fastapi
 uvicorn[standard]
 pydantic
+spacy
+sentence-transformers
 transformers
+datasets
 torch
+scikit-learn
 soundfile
-pyloudnorm
-librosa
 numpy
+requests
