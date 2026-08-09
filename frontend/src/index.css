@@ -2,5 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Tiro+Devanagari:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=UnifrakturMaguntia&family=Oswald:wght@700&family=Abril+Fatface&display=swap');
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #f5f5f5; color: #111; }
+
+:root {
+  --parchment:      #f0e6cc;
+  --parchment-dark: #ddd0a8;
+  --ink:            #1a0e00;
+  --ink-light:      #3d2200;
+  --burgundy:       #6b1a1a;
+  --ochre:          #c8860a;
+  --sepia:          #7a5c3a;
+  --gold:           #d4a017;
+  --intro-bg:       #050302;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--intro-bg);
+  color: var(--ink);
+  overflow-x: hidden;
+}
