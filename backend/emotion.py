@@ -1,3 +1,5 @@
+print("EMOTION MODULE LOADED WITH FIX")
+
 import torch
 import numpy as np
 from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
@@ -25,10 +27,7 @@ def load_emotion_model():
     global _model, _tokenizer, _label_encoder, _device
 
     if not os.path.exists(MODEL_DIR):
-        raise RuntimeError(
-            f"emotion_model/ folder not found in backend/. "
-            f"Please download and place the trained model folder first."
-        )
+        raise RuntimeError("emotion_model/ folder not found in backend/.")
 
     print("Loading fine-tuned emotion model...")
     _device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -61,10 +60,7 @@ def classify_emotion(embedding: np.ndarray, text: str) -> list[dict]:
     probs = torch.softmax(outputs.logits, dim=-1)[0].cpu().numpy()
     top2_indices = probs.argsort()[-2:][::-1]
 
-    # Debug: see what labels actually look like
-    for idx in top2_indices:
-        raw = _label_encoder.inverse_transform([idx])[0]
-        print(f"DEBUG — index: {idx}, raw label: {raw}, type: {type(raw)}")
+    print(f"DEBUG - label 0: {GOEMOTION_LABELS[int(top2_indices[0])]}, label 1: {GOEMOTION_LABELS[int(top2_indices[1])]}")
 
     return [
         {

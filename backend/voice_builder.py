@@ -90,7 +90,7 @@ Voice description:"""
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "temperature": 0.7,
-                    "maxOutputTokens": 120,
+                    "maxOutputTokens": 800,
                 },
             },
             timeout=30,
