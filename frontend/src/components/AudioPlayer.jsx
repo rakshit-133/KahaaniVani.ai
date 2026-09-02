@@ -1,207 +1,193 @@
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect } from 'react';
+import { getEmotionStyle } from '../emotionColors';
+import './AudioPlayer.css';
 
-function formatTime(s) {
-  const m = Math.floor(s / 60)
-  const sec = Math.floor(s % 60)
-  return `${m}:${sec.toString().padStart(2, "0")}`
+function WaveformBars({ playing }) {
+  const BAR_COUNT = 28;
+  return (
+    <div className={`waveform ${playing ? 'waveform--playing' : 'waveform--idle'}`} aria-hidden="true">
+      {Array.from({ length: BAR_COUNT }).map((_, i) => (
+        <div
+          key={i}
+          className="waveform__bar"
+          style={{ '--i': i, '--bars': BAR_COUNT }}
+        />
+      ))}
+    </div>
+  );
 }
 
-export default function AudioPlayer({ chunks }) {
-  const audioRef = useRef(null)
-  const [playing, setPlaying] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [currentChunk, setCurrentChunk] = useState(0)
-  const [url, setUrl] = useState(null)
-  const boundaries = useRef([])
+export default function AudioPlayer({ chunk, index, animate }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying]   = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const emotionStyle = getEmotionStyle(chunk.emotion_label);
+
+  // Build audio src from base64
+  const audioSrc = `data:audio/wav;base64,${chunk.audio_b64}`;
 
   useEffect(() => {
-    if (!chunks.length) return
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    async function build() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)()
-      const buffers = []
+    const onTimeUpdate = () => {
+      setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
+    };
+    const onLoadedMetadata = () => setDuration(audio.duration);
+    const onEnded = () => { setPlaying(false); setProgress(0); };
 
-      for (const chunk of chunks) {
-        const bytes = atob(chunk.audio_b64)
-        const arr = new Uint8Array(bytes.length)
-        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i)
-        const decoded = await ctx.decodeAudioData(arr.buffer)
-        buffers.push(decoded)
-      }
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
 
-      const sr = buffers[0].sampleRate
-      const gap = Math.floor(sr * 0.3)
-      const total = buffers.reduce((s, b) => s + b.length + gap, 0)
-      const combined = ctx.createBuffer(1, total, sr)
-      const out = combined.getChannelData(0)
-      let offset = 0
-      const bounds = []
-
-      for (let i = 0; i < buffers.length; i++) {
-        const start = offset / sr
-        out.set(buffers[i].getChannelData(0), offset)
-        const end = (offset + buffers[i].length) / sr
-        bounds.push({ start, end, index: i })
-        offset += buffers[i].length + gap
-      }
-
-      boundaries.current = bounds
-
-      const wav = encodeWav(out, sr)
-      const blob = new Blob([wav], { type: "audio/wav" })
-      setUrl(URL.createObjectURL(blob))
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.play();
+      setPlaying(true);
     }
+  };
 
-    build()
-  }, [chunks])
+  const handleSeek = (e) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = x / rect.width;
+    audio.currentTime = pct * audio.duration;
+  };
 
-  function encodeWav(samples, sr) {
-    const buf = new ArrayBuffer(44 + samples.length * 2)
-    const view = new DataView(buf)
-    const ws = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)) }
-    ws(0, "RIFF"); view.setUint32(4, 36 + samples.length * 2, true)
-    ws(8, "WAVE"); ws(12, "fmt ")
-    view.setUint32(16, 16, true); view.setUint16(20, 1, true)
-    view.setUint16(22, 1, true); view.setUint32(24, sr, true)
-    view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true)
-    view.setUint16(34, 16, true); ws(36, "data")
-    view.setUint32(40, samples.length * 2, true)
-    let o = 44
-    for (let i = 0; i < samples.length; i++) {
-      const s = Math.max(-1, Math.min(1, samples[i]))
-      view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true); o += 2
-    }
-    return buf
-  }
+  const handleDownload = () => {
+    const a = document.createElement('a');
+    a.href = audioSrc;
+    a.download = `chunk-${index + 1}-${chunk.emotion_label}.wav`;
+    a.click();
+  };
 
-  function onTimeUpdate() {
-    const el = audioRef.current
-    if (!el) return
-    setProgress(el.currentTime)
-    const t = el.currentTime
-    const found = boundaries.current.find(b => t >= b.start && t < b.end)
-    if (found) setCurrentChunk(found.index)
-  }
-
-  function togglePlay() {
-    const el = audioRef.current
-    if (!el) return
-    playing ? el.pause() : el.play()
-    setPlaying(!playing)
-  }
-
-  function seek(e) {
-    const el = audioRef.current
-    if (!el || !duration) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    el.currentTime = ((e.clientX - rect.left) / rect.width) * duration
-  }
-
-  function jumpTo(idx) {
-    const el = audioRef.current
-    const b = boundaries.current[idx]
-    if (!el || !b) return
-    el.currentTime = b.start
-    setCurrentChunk(idx)
-    el.play()
-    setPlaying(true)
-  }
-
-  if (!url) return null
-
-  const pct = duration > 0 ? (progress / duration) * 100 : 0
+  const formatTime = (s) => {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div
-      className="rounded-sm border p-5 space-y-4"
-      style={{
-        borderColor: "#e0cba8",
-        background: "linear-gradient(135deg, #f9f2e3 0%, #f2e8d5 100%)",
-        boxShadow: "2px 2px 8px rgba(28,15,0,0.08)",
-      }}
+      className={`audio-player glass glass-hover ${animate ? 'audio-player--animate' : ''}`}
+      style={{ animationDelay: `${index * 90}ms` }}
     >
-      <audio
-        ref={audioRef}
-        src={url}
-        onTimeUpdate={onTimeUpdate}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-        onEnded={() => setPlaying(false)}
-      />
+      <audio ref={audioRef} src={audioSrc} preload="metadata" />
 
-      <div className="flex items-center gap-2 mb-1">
-        <div className="h-px flex-1 bg-[#e0cba8]" />
-        <span className="text-xs tracking-widest uppercase text-[#7a5c3a] font-mono">
-          Audio Playback
-        </span>
-        <div className="h-px flex-1 bg-[#e0cba8]" />
-      </div>
-
-      {/* Progress bar */}
-      <div
-        className="h-8 rounded-sm overflow-hidden cursor-pointer relative flex items-center px-3"
-        style={{ background: "#e8dcc8" }}
-        onClick={seek}
-      >
-        <div
-          className="absolute left-0 top-0 h-full transition-all"
-          style={{
-            width: `${pct}%`,
-            background: "linear-gradient(90deg, #6b1a1a, #c8860a)",
-            opacity: 0.3,
-          }}
-        />
-        {boundaries.current.map((b, i) => (
-          <div
-            key={i}
-            className="absolute top-0 w-px h-full opacity-30"
-            style={{ left: `${(b.start / duration) * 100}%`, background: "#1c0f00" }}
-          />
-        ))}
-        <span className="relative text-xs font-mono text-[#7a5c3a]">
-          {formatTime(progress)} / {formatTime(duration)}
-        </span>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-4">
+      {/* Header */}
+      <div className="audio-player__header">
+        <div className="audio-player__meta">
+          <span className="audio-player__index mono">#{index + 1}</span>
+          <span
+            className="audio-player__emotion-tag"
+            style={{
+              background: emotionStyle.bg,
+              borderColor: emotionStyle.border,
+              color: emotionStyle.text,
+            }}
+          >
+            {chunk.emotion_label}
+          </span>
+          {chunk.second_emotion_label && chunk.second_emotion_score > 0.05 && (
+            <span
+              className="audio-player__emotion-tag audio-player__emotion-tag--secondary"
+              style={{
+                background: getEmotionStyle(chunk.second_emotion_label).bg,
+                borderColor: getEmotionStyle(chunk.second_emotion_label).border,
+                color: getEmotionStyle(chunk.second_emotion_label).text,
+              }}
+            >
+              {chunk.second_emotion_label}
+            </span>
+          )}
+        </div>
         <button
+          id={`download-chunk-${index}`}
+          className="btn btn-ghost btn-icon"
+          onClick={handleDownload}
+          title="Download WAV"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Text */}
+      <p className="audio-player__text">"{chunk.text}"</p>
+
+      {/* Voice description */}
+      {chunk.voice_description && (
+        <div className="audio-player__description">
+          <span className="audio-player__description-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="m8 3 4 4 4-4"/><path d="M12 7v10"/>
+            </svg>
+            Voice direction
+          </span>
+          <p className="audio-player__description-text">{chunk.voice_description}</p>
+        </div>
+      )}
+
+      {/* Waveform + Controls */}
+      <div className="audio-player__controls">
+        {/* Play button */}
+        <button
+          id={`play-chunk-${index}`}
+          className={`audio-player__play ${playing ? 'audio-player__play--playing' : ''}`}
           onClick={togglePlay}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105"
-          style={{ background: "#6b1a1a", color: "#f2e8d5" }}
+          aria-label={playing ? 'Pause' : 'Play'}
         >
           {playing ? (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <rect x="1" y="1" width="4" height="10" rx="1"/>
-              <rect x="7" y="1" width="4" height="10" rx="1"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
             </svg>
           ) : (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M2 1l9 5-9 5z"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
           )}
         </button>
-        <span className="text-xs text-[#7a5c3a] font-mono">
-          Sentence {currentChunk + 1} of {chunks.length}
+
+        {/* Waveform */}
+        <WaveformBars playing={playing} />
+
+        {/* Time */}
+        <span className="audio-player__time mono">
+          {formatTime(duration)}
         </span>
       </div>
 
-      {/* Chunk jump buttons */}
-      <div className="flex flex-wrap gap-1.5">
-        {chunks.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => jumpTo(i)}
-            className="w-7 h-7 rounded-sm text-xs font-mono transition-all"
-            style={{
-              background: currentChunk === i ? "#6b1a1a" : "#e0cba8",
-              color: currentChunk === i ? "#f2e8d5" : "#7a5c3a",
-            }}
-          >
-            {i + 1}
-          </button>
-        ))}
+      {/* Seek bar */}
+      <div className="audio-player__seekbar" onClick={handleSeek} role="slider" aria-label="Seek">
+        <div className="audio-player__seekbar-track">
+          <div
+            className="audio-player__seekbar-fill"
+            style={{ width: `${progress}%`, '--color': emotionStyle.text }}
+          />
+          <div
+            className="audio-player__seekbar-thumb"
+            style={{ left: `${progress}%`, '--color': emotionStyle.text }}
+          />
+        </div>
       </div>
     </div>
-  )
+  );
 }

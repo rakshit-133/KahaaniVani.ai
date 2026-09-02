@@ -1,0 +1,215 @@
+.audio-player {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audio-player--animate {
+  animation: fadeUp 0.5s ease both;
+}
+
+/* Header */
+.audio-player__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.audio-player__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.audio-player__index {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.audio-player__emotion-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+}
+
+.audio-player__emotion-tag--secondary {
+  opacity: 0.65;
+}
+
+/* Text */
+.audio-player__text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  font-style: italic;
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+}
+
+/* Voice description */
+.audio-player__description {
+  background: rgba(249, 115, 22, 0.06);
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audio-player__description-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f97316;
+}
+
+.audio-player__description-text {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Controls row */
+.audio-player__controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Play button */
+.audio-player__play {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.audio-player__play:hover {
+  box-shadow: 0 6px 24px rgba(249, 115, 22, 0.55);
+  transform: scale(1.05);
+}
+
+.audio-player__play:active {
+  transform: scale(0.97);
+}
+
+.audio-player__play--playing {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Waveform */
+.waveform {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 32px;
+}
+
+.waveform__bar {
+  flex: 1;
+  background: var(--border);
+  border-radius: 999px;
+  transform-origin: center;
+  transition: background 0.3s;
+}
+
+/* Idle: gentle breathing */
+.waveform--idle .waveform__bar {
+  animation: breathe calc(1.4s + var(--i) * 0.06s) ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * 0.04s);
+  background: var(--border);
+}
+
+/* Playing: active dancing */
+.waveform--playing .waveform__bar {
+  animation: dance calc(0.4s + (var(--i) % 5) * 0.08s) ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * 0.035s);
+  background: linear-gradient(to top, #f97316, #f43f5e);
+}
+
+@keyframes breathe {
+  from { transform: scaleY(0.25); }
+  to   { transform: scaleY(0.6); }
+}
+
+@keyframes dance {
+  from { transform: scaleY(calc(0.2 + (var(--i) % 3) * 0.1)); }
+  to   { transform: scaleY(calc(0.7 + (var(--i) % 4) * 0.15)); }
+}
+
+/* Time */
+.audio-player__time {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Seek bar */
+.audio-player__seekbar {
+  cursor: pointer;
+  padding: 6px 0;
+  position: relative;
+}
+
+.audio-player__seekbar-track {
+  position: relative;
+  height: 3px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 999px;
+  overflow: visible;
+}
+
+.audio-player__seekbar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--color, #7c3aed);
+  border-radius: 999px;
+  box-shadow: 0 0 6px var(--color, rgba(124,58,237,0.5));
+  transition: width 0.1s linear;
+}
+
+.audio-player__seekbar-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color, #7c3aed);
+  box-shadow: 0 0 8px var(--color, rgba(124,58,237,0.6));
+  transition: transform 0.15s;
+}
+
+.audio-player__seekbar:hover .audio-player__seekbar-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}

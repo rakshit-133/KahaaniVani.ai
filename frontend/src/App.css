@@ -1,0 +1,127 @@
+/* App-level layout */
+
+/* ── Navbar ──────────────────────────────────────────────────────────────── */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navbar__inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.navbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar__logo {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.navbar__name {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.navbar__dot {
+  color: var(--accent);
+}
+
+.navbar__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Status indicator */
+.navbar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.navbar__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.navbar__status--ok .navbar__status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.navbar__status--ok {
+  color: var(--success);
+}
+
+.navbar__status--offline .navbar__status-dot {
+  background: var(--error);
+}
+
+.navbar__status--offline {
+  color: var(--error);
+}
+
+/* ── Section Divider ─────────────────────────────────────────────────────── */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-divider__line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border), transparent);
+}
+
+.section-divider__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 32px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}

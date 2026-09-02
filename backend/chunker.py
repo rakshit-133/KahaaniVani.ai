@@ -15,7 +15,7 @@ def load_chunker():
     print("spaCy model loaded.")
 
 
-def split_into_chunks(text: str, max_tokens: int = 300) -> list[str]:
+def split_into_chunks(text: str, max_tokens: int = 40) -> list[str]:
     """
     Split input text into sentence-level chunks using spaCy's neural
     sentence boundary detector.
@@ -30,7 +30,7 @@ def split_into_chunks(text: str, max_tokens: int = 300) -> list[str]:
 
     Args:
         text: raw input paragraph from the user
-        max_tokens: soft upper limit per chunk (model hard limit is 512)
+        max_tokens: soft upper limit per chunk (reduced to 40 for TTS stability)
 
     Returns:
         list of clean sentence-chunk strings

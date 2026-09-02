@@ -1,0 +1,164 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px 120px;
+  overflow: hidden;
+}
+
+/* Ambient orbs */
+.hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  animation: float 8s ease-in-out infinite;
+}
+
+.hero__orb--warm-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%);
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-duration: 10s;
+}
+
+.hero__orb--warm-2 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(244,63,94,0.08) 0%, transparent 70%);
+  bottom: 0px;
+  right: 0%;
+  animation-delay: -4s;
+  animation-duration: 12s;
+}
+
+/* Content */
+.hero__content {
+  position: relative;
+  z-index: 1;
+  max-width: 850px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+/* Main Title (KahaaniVani.ai) */
+.hero__main-title {
+  font-size: clamp(3.5rem, 9vw, 7rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: -10px;
+}
+
+.hero__main-title-dot {
+  color: var(--primary);
+}
+
+/* Title */
+.hero__title {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero__title-line {
+  color: var(--text-muted);
+}
+
+.hero__title-gradient {
+  background: linear-gradient(135deg, #f97316 0%, #f43f5e 50%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200%;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Subtitle */
+.hero__subtitle {
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+  color: var(--text-muted);
+  max-width: 620px;
+  line-height: 1.75;
+  margin-top: 10px;
+}
+
+/* Features */
+.hero__features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.hero__feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+
+.hero__feature:hover {
+  transform: translateY(-2px);
+  color: var(--text);
+}
+
+.hero__feature-icon {
+  font-size: 1.1em;
+}
+
+/* CTA */
+.hero__cta {
+  padding: 16px 36px;
+  font-size: 1rem;
+  border-radius: 999px; /* Pill shape for CTA */
+  margin-top: 16px;
+}
+
+/* Scroll cue */
+.hero__scroll-cue {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: float 2.5s ease-in-out infinite;
+  box-shadow: var(--shadow-sm);
+}
+
+.hero__scroll-cue:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: var(--shadow-md);
+}

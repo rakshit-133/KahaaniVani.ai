@@ -1,0 +1,72 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: splashFadeOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 2s; /* Hold the screen for 2s before fading out */
+  pointer-events: none; /* Allows clicks to pass through once fading out */
+}
+
+.splash__title {
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 10px;
+  opacity: 0;
+  animation: splashScaleIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation-delay: 0.2s;
+}
+
+.splash__title-dot {
+  color: var(--primary);
+}
+
+.splash__subtitle {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0;
+  animation: splashFadeInUp 0.8s ease forwards;
+  animation-delay: 0.6s;
+  font-family: 'Outfit', sans-serif;
+}
+
+@keyframes splashScaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashFadeOut {
+  0% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
