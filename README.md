@@ -8,6 +8,7 @@
     <img src="https://img.shields.io/badge/FastAPI-0.103+-009688.svg" alt="FastAPI" />
     <img src="https://img.shields.io/badge/React-Vite-61DAFB.svg" alt="React" />
     <img src="https://img.shields.io/badge/HuggingFace-Transformers-FFD21E.svg" alt="HuggingFace" />
+    <img src="https://img.shields.io/badge/PyTorch-2.0+-EE4C2C.svg" alt="PyTorch" />
   </p>
 </div>
 
@@ -40,10 +41,11 @@ flowchart TD
 
     subgraph "Synthesis Layer"
         G --> H[Parler-TTS Mini\nNeural Synthesis]
-        B -.->|Raw Text| H
+        B -.->|Raw Text (Sanitized)| H
     end
 
-    H --> I[🎵 Expressive Audio Output]
+    H --> I[🎵 Server-Sent Events (SSE)\nAudio Stream]
+    I --> J[React Frontend\nSeamless Playback]
 
     classDef highlight fill:#ff9900,stroke:#333,stroke-width:2px,color:#fff;
     class D,F highlight;
@@ -51,29 +53,69 @@ flowchart TD
 
 ---
 
-## 🧠 The Machine Learning Process
+## 🧬 Evolution of the Pipeline: Past Approaches vs. Current
 
-### 1. Handling the GoEmotions Imbalance
-The pipeline relies on the **GoEmotions** dataset, which contains 28 distinct emotion labels. However, this dataset is notoriously imbalanced (e.g., thousands of `surprise` samples, but only 16 `nervousness` samples). The base `distilbert-base-uncased-emotion` model completely failed to recognize these minority classes (0% F1 Score).
+Building a contextual TTS engine requires navigating several architectural pitfalls. Throughout the development of KahaaniVani.ai, several approaches were tested and discarded in favor of more robust solutions:
 
-### 2. Aggressive Fine-Tuning
-To build a highly sensitive TTS engine, the model needed to recognize subtle emotions. I fine-tuned the model using PyTorch and HuggingFace Transformers with the following strategy:
-- **Data Augmentation**: Weighted sampling to punish the model for missing minority classes.
-- **Hyperparameters**: 4 Epochs, aggressive `5e-5` learning rate, and `0.01` weight decay.
+### 1. The Emotion Detection Problem
+*   **Past Approach:** Relying entirely on LLMs (like GPT-4 or Gemini) to classify the emotion of the text in zero-shot.
+*   **The Flaw:** High latency (often 1-3 seconds just to figure out the emotion) and prohibitive API costs at scale.
+*   **Current Approach:** A locally hosted, fine-tuned DistilBERT classifier. It infers the emotion of a sentence in milliseconds (using purely CPU/GPU compute), passing only the final structured VAD coordinates to the LLM for prompt formatting.
 
-**🏆 The Result:** 
-The fine-tuning yielded a **2.0% absolute increase in Macro F1 Score**. It successfully rescued dead minority classes, skyrocketing emotions like `Nervousness` from **0% to 47% F1 Score** and seeing massive bumps in tricky classes like `Pride`, `Annoyance`, and `Disappointment`.
+### 2. The Voice Continuity Problem
+*   **Past Approach (Dynamic Actor Switching):** Initially, the pipeline attempted to "force" emotions out of Parler-TTS by swapping the literal voice actor. For example, sentences tagged with "sadness" were routed to a speaker named *Emily*, while "surprise" was routed to *Joy*.
+*   **The Flaw:** Context destruction. A sad sentence followed by a surprised sentence sounded like two completely different people speaking.
+*   **Current Approach (Static Actor Anchoring):** We curated 8 fixed Parler-TTS voice actors. The user selects an actor (e.g., *Laura*). The backend locks this identity and forces Gemini to output prompts strictly formatted as: `"{Actor}'s voice is [emotional adjectives]..."`. This guarantees the vocal timbre remains perfectly identical across the entire paragraph, while only their emotional delivery shifts.
+
+### 3. The Prompt Sanitization Problem
+*   **Past Approach:** Feeding raw user text directly into Parler-TTS alongside the generated voice description.
+*   **The Flaw:** Parler-TTS expects perfectly normalized text. Straight quotes (`'`), smart quotes (`”`), and apostrophes would corrupt the tokenizer's embeddings, resulting in the model generating complete gibberish audio.
+*   **Current Approach:** A regex/string sanitization layer sits just before synthesis, stripping un-normalized characters without altering the spoken phonemes.
 
 ---
 
-## 🗣️ The Voice Continuity Engine
+## 🧠 The Machine Learning Process: Rescuing Minority Classes
 
-A major challenge with generative TTS models like Parler-TTS is that feeding them different emotional prompts (e.g., "A sad voice" followed by "A surprised voice") causes the model to generate audio that sounds like *two completely different people*.
+### The GoEmotions Imbalance
+The pipeline relies on the **GoEmotions** dataset, which contains 28 distinct emotion labels. However, this dataset is notoriously imbalanced (e.g., thousands of `surprise` samples, but only 16 `nervousness` samples). 
 
-To solve speaker discontinuity:
-1. **Static Actor Anchoring**: I curated 8 fixed Parler-TTS voice actors (e.g., Laura, Jon). 
-2. **Dynamic Modification**: Instead of asking the TTS to "be sad", the backend forces Gemini to write a prompt formatted strictly as: `"{Voice_Actor}'s voice is [emotional adjectives based on DistilBERT]..."`
-3. **The Outcome**: The voice identity remains 100% locked across multiple paragraphs, while their emotional delivery, pitch, and cadence shift seamlessly from sentence to sentence.
+When evaluating the base `distilbert-base-uncased-emotion` model, it completely failed to recognize these minority classes (scoring 0% F1).
+
+### Aggressive Fine-Tuning
+To build a highly sensitive TTS engine, the model needed to recognize subtle emotions. I fine-tuned the model using PyTorch and HuggingFace Transformers with the following strategy:
+- **Data Preprocessing**: Sliced the dataset to remove severe multi-label collisions, creating a unified `combined_train.csv`.
+- **Data Augmentation**: Weighted sampling to punish the model for missing minority classes.
+- **Hyperparameters**: 4 Epochs, aggressive `5e-5` learning rate, and `0.01` weight decay.
+
+### 📊 Model Evaluation Comparison
+
+The fine-tuning yielded a **2.0% absolute increase in Macro F1 Score**. In highly imbalanced datasets, Macro F1 is the true measure of success because it averages the performance of *all* classes equally.
+
+| Metric | Base Model (Before) | Fine-Tuned Model (After) | Change |
+| :--- | :--- | :--- | :--- |
+| **Accuracy** | 57.6% | 57.5% | -0.1% |
+| **Weighted F1** | 56.1% | 56.6% | +0.5% |
+| **Macro F1** | 44.0% | **46.0%** | **+2.0%** |
+
+**🎯 Key Minority Class Improvements (F1 Scores):**
+The primary goal was to rescue classes that the base model failed to understand. 
+
+| Emotion | Base F1 Score | Fine-Tuned F1 Score | Improvement |
+| :--- | :--- | :--- | :--- |
+| **Nervousness** | 0.000 | **0.470** | 🚀 (Rescued from zero) |
+| **Pride** | 0.164 | **0.233** | +0.069 |
+| **Annoyance** | 0.257 | **0.316** | +0.059 |
+| **Disappointment** | 0.279 | **0.333** | +0.054 |
+| **Disapproval** | 0.360 | **0.390** | +0.030 |
+
+---
+
+## ⚡ Backend Architecture: Asynchronous Streaming
+
+Generating Neural TTS audio takes time (~5-15 seconds per paragraph depending on hardware). If a user pastes a 10-sentence story, waiting 2 minutes for the entire audio file to generate is terrible UX.
+
+**The Solution:** Server-Sent Events (SSE). 
+The FastAPI backend uses Python generators (`yield`) to stream the audio data incrementally. As soon as the spaCy chunker finishes processing the *first* sentence, it is sent through the pipeline, synthesized, base64 encoded, and streamed to the React frontend. The user begins listening to sentence 1 while sentence 2 is still generating in the background.
 
 ---
 

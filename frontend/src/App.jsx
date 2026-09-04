@@ -12,19 +12,52 @@ export default function App() {
   const { toasts, toast, removeToast } = useToast();
   const [backendStatus, setBackendStatus] = useState('checking'); // checking | ok | offline
   const [showSplash, setShowSplash] = useState(true);
+  const loadingToastRef = useRef(null);
 
-  // Check backend health on mount
+  // Check backend health on mount and poll if offline
   useEffect(() => {
-    checkHealth()
-      .then(() => setBackendStatus('ok'))
-      .catch(() => {
-        setBackendStatus('offline');
-        toast.error('Backend is offline. Start the FastAPI server on port 8000.', 0);
-      });
+    let pollingInterval;
+
+    const pingServer = () => {
+      checkHealth()
+        .then(() => {
+          setBackendStatus(prev => {
+            if (prev !== 'ok') {
+              if (loadingToastRef.current) {
+                removeToast(loadingToastRef.current);
+                loadingToastRef.current = null;
+              }
+              // Only show success toast if we were previously offline/checking
+              toast.success('Backend is online and ready!');
+            }
+            return 'ok';
+          });
+          // Stop polling once connected
+          clearInterval(pollingInterval);
+        })
+        .catch(() => {
+          setBackendStatus(prev => {
+            if (prev !== 'offline') {
+              loadingToastRef.current = toast.loading('Backend is waking up, please wait...', 0);
+            }
+            return 'offline';
+          });
+        });
+    };
+
+    // Initial check
+    pingServer();
+    
+    // Poll every 3 seconds if not connected
+    pollingInterval = setInterval(pingServer, 3000);
       
     // Unmount splash after animation finishes (2.8s)
     const splashTimer = setTimeout(() => setShowSplash(false), 2800);
-    return () => clearTimeout(splashTimer);
+    
+    return () => {
+      clearInterval(pollingInterval);
+      clearTimeout(splashTimer);
+    };
   }, []);
 
   const scrollToStudio = () => {
@@ -50,7 +83,7 @@ export default function App() {
               <span className="navbar__status-dot" />
               {backendStatus === 'checking' ? 'Connecting…'
                 : backendStatus === 'ok'    ? 'System Online'
-                : 'System Offline'}
+                : 'Waking Up...'}
             </span>
           </div>
         </div>
