@@ -1,4 +1,21 @@
+# Environments and caches
 .env
 venv/
 __pycache__/
-emotion_model/
+*.pyc
+
+# Node
+node_modules/
+dist/
+
+# Model weights and artifacts (too large for git)
+emotion_model*/
+backend/emotion_model*/
+training/output/
+backend/training/output/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.zip
+*.tar.gz

@@ -54,11 +54,11 @@ CONFIG = {
     "num_labels":     28,
     "max_length":     128,
     "batch_size":     32,       # Use 16 if you get OOM errors on GPU
-    "learning_rate":  2e-5,
-    "epochs":         4,
-    "warmup_ratio":   0.1,      # 10% of steps used for warmup
+    "learning_rate":  5e-5,     # Aggressive LR for fast learning
+    "epochs":         4,        # Shorter run to prevent overfitting with high LR
+    "warmup_ratio":   0.1,      # Standard 10% warmup
     "weight_decay":   0.01,
-    "use_weighted_loss": True,  # Upweight rare emotion classes
+    "use_weighted_loss": False, # Disabled to maximize overall Macro average
     "seed":           42,
 
     # Paths
@@ -177,6 +177,9 @@ def main():
     print(f"  Epochs:       {CONFIG['epochs']}")
     print(f"  Batch size:   {CONFIG['batch_size']}")
     print(f"  Learning rate:{CONFIG['learning_rate']}")
+    num_gpus = torch.cuda.device_count() if device == "cuda" else 0
+    if num_gpus > 1:
+        print(f"  GPUs:         {num_gpus} x {torch.cuda.get_device_name(0)} (DataParallel)")
 
     os.makedirs(CONFIG["output_dir"], exist_ok=True)
 
@@ -206,6 +209,14 @@ def main():
         num_labels=CONFIG["num_labels"],
         ignore_mismatched_sizes=True,  # In case the base model has different num_labels
     ).to(device)
+
+    # ── Multi-GPU: wrap in DataParallel if 2x T4 available ─────────────────
+    num_gpus = torch.cuda.device_count() if device == "cuda" else 1
+    if num_gpus > 1:
+        model = nn.DataParallel(model)
+        # Double the batch size to fully utilize both GPUs
+        CONFIG["batch_size"] = CONFIG["batch_size"] * num_gpus
+        print(f"  DataParallel enabled across {num_gpus} GPUs — batch size -> {CONFIG['batch_size']}")
     print("  Model loaded.")
 
     # ── DataLoaders ────────────────────────────────────────────────────────
@@ -298,11 +309,12 @@ def main():
         print(f"  Macro F1:     {val_metrics['macro_f1']:.4f}  ← key metric")
         print(f"  Weighted F1:  {val_metrics['weighted_f1']:.4f}")
 
-        # Save best model
+        # Save best model (unwrap DataParallel if needed)
         if val_metrics["macro_f1"] > best_macro_f1:
             best_macro_f1 = val_metrics["macro_f1"]
             best_epoch = epoch
-            model.save_pretrained(CONFIG["output_dir"])
+            save_model = model.module if isinstance(model, nn.DataParallel) else model
+            save_model.save_pretrained(CONFIG["output_dir"])
             tokenizer.save_pretrained(CONFIG["output_dir"])
             # Save label encoder (required by emotion.py)
             with open(os.path.join(CONFIG["output_dir"], "label_encoder.pkl"), "wb") as f:
