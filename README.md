@@ -26,26 +26,26 @@ It chunks paragraphs, embeds them, predicts their emotional context out of 28 fi
 
 ```mermaid
 flowchart TD
-    A[User Input Text] --> B[spaCy NLP\nSentence Chunker]
+    A["User Input Text"] --> B["spaCy NLP\nSentence Chunker"]
     
     subgraph "Emotion Detection Layer"
-        B --> C[Sentence-BERT\nEmbeddings]
-        C --> D[Fine-Tuned DistilBERT\n28-Class Classifier]
-        D --> E[VAD Mapping\nValence, Arousal, Dominance]
+        B --> C["Sentence-BERT\nEmbeddings"]
+        C --> D["Fine-Tuned DistilBERT\n28-Class Classifier"]
+        D --> E["VAD Mapping\nValence, Arousal, Dominance"]
     end
 
     subgraph "Generative Prompting Layer"
-        E --> F[Gemini 1.5 Flash\nVoice Director]
-        F -->|Injects Actor Identity +\nEmotional Adjectives| G[Dynamic Voice Prompt]
+        E --> F["Gemini 1.5 Flash\nVoice Director"]
+        F -->|Injects Actor Identity +\nEmotional Adjectives| G["Dynamic Voice Prompt"]
     end
 
     subgraph "Synthesis Layer"
-        G --> H[Parler-TTS Mini\nNeural Synthesis]
+        G --> H["Parler-TTS Mini\nNeural Synthesis"]
         B -->|Raw Text| H
     end
 
-    H --> I[🎵 Server-Sent Events (SSE)\nAudio Stream]
-    I --> J[React Frontend\nSeamless Playback]
+    H --> I["🎵 Server-Sent Events (SSE)\nAudio Stream"]
+    I --> J["React Frontend\nSeamless Playback"]
 
     classDef highlight fill:#ff9900,stroke:#333,stroke-width:2px,color:#fff;
     class D,F highlight;
