@@ -26,29 +26,28 @@ It chunks paragraphs, embeds them, predicts their emotional context out of 28 fi
 
 ```mermaid
 flowchart TD
+    classDef highlight fill:#ff9900,stroke:#333,stroke-width:2px,color:#fff;
+
     A["User Input Text"] --> B["spaCy NLP\nSentence Chunker"]
     
     subgraph "Emotion Detection Layer"
         B --> C["Sentence-BERT\nEmbeddings"]
-        C --> D["Fine-Tuned DistilBERT\n28-Class Classifier"]
+        C --> D["Fine-Tuned DistilBERT\n28-Class Classifier"]:::highlight
         D --> E["VAD Mapping\nValence, Arousal, Dominance"]
     end
 
     subgraph "Generative Prompting Layer"
-        E --> F["Gemini 1.5 Flash\nVoice Director"]
+        E --> F["Gemini 1.5 Flash\nVoice Director"]:::highlight
         F -->|Injects Actor Identity +\nEmotional Adjectives| G["Dynamic Voice Prompt"]
     end
 
     subgraph "Synthesis Layer"
         G --> H["Parler-TTS Mini\nNeural Synthesis"]
-        B -->|Raw Text| H
     end
 
+    B -->|Raw Text| H
     H --> I["🎵 Server-Sent Events (SSE)\nAudio Stream"]
     I --> J["React Frontend\nSeamless Playback"]
-
-    classDef highlight fill:#ff9900,stroke:#333,stroke-width:2px,color:#fff;
-    class D,F highlight;
 ```
 
 ---
@@ -79,7 +78,7 @@ Building a contextual TTS engine requires navigating several architectural pitfa
 ### The GoEmotions Imbalance
 The pipeline relies on the **GoEmotions** dataset, which contains 28 distinct emotion labels. However, this dataset is notoriously imbalanced (e.g., thousands of `surprise` samples, but only 16 `nervousness` samples). 
 
-When evaluating the base `distilbert-base-uncased-emotion` model, it completely failed to recognize these minority classes (scoring 0% F1).
+When evaluating the base `bhadresh-savani/distilbert-base-uncased-emotion` model, it completely failed to recognize these minority classes (scoring 0% F1).
 
 ### Aggressive Fine-Tuning
 To build a highly sensitive TTS engine, the model needed to recognize subtle emotions. I fine-tuned the model using PyTorch and HuggingFace Transformers with the following strategy:
@@ -102,7 +101,7 @@ The primary goal was to rescue classes that the base model failed to understand.
 
 | Emotion | Base F1 Score | Fine-Tuned F1 Score | Improvement |
 | :--- | :--- | :--- | :--- |
-| **Nervousness** | 0.000 | **0.470** | 🚀 (Rescued from zero) |
+| **Nervousness** | 0.000 | **0.470** | +0.470 🚀 (Rescued from zero) |
 | **Pride** | 0.164 | **0.233** | +0.069 |
 | **Annoyance** | 0.257 | **0.316** | +0.059 |
 | **Disappointment** | 0.279 | **0.333** | +0.054 |
@@ -154,6 +153,7 @@ pip install -r requirements.txt
 # Create a .env file and add your Gemini API Key
 echo "GEMINI_API_KEY=your_api_key_here" > .env
 
+# Note on CORS: main.py is pre-configured with CORSMiddleware allowing requests from http://localhost:5173
 # Run the FastAPI server
 uvicorn main:app --host 127.0.0.1 --port 8000
 ```
