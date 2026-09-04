@@ -6,7 +6,6 @@ __pycache__/
 
 # Node
 node_modules/
-dist/
 
 # Model weights and artifacts (too large for git)
 emotion_model*/

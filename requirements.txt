@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+spacy
+sentence-transformers
+transformers
+datasets
+torch
+scikit-learn
+soundfile
+numpy
+requests
+parler-tts
+spaces

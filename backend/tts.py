@@ -9,6 +9,19 @@ _model = None
 _tokenizer = None
 _device = None
 
+try:
+    import spaces
+except ImportError:
+    # Dummy wrapper if not running on Hugging Face Spaces
+    class spaces:
+        @staticmethod
+        def GPU(func=None, **kwargs):
+            if func:
+                return func
+            def wrapper(f):
+                return f
+            return wrapper
+
 
 def load_tts_model():
     global _model, _tokenizer, _device
@@ -25,6 +38,7 @@ def load_tts_model():
     print("Parler-TTS loaded.")
 
 
+@spaces.GPU
 def synthesize(text: str, description: str) -> tuple[np.ndarray, int]:
     if _model is None:
         raise RuntimeError("TTS model not loaded. Call load_tts_model() first.")
