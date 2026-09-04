@@ -29,8 +29,12 @@ def synthesize(text: str, description: str) -> tuple[np.ndarray, int]:
     if _model is None:
         raise RuntimeError("TTS model not loaded. Call load_tts_model() first.")
 
-    input_ids        = _tokenizer(description,  return_tensors="pt").input_ids.to(_device)
-    prompt_input_ids = _tokenizer(text, return_tensors="pt").input_ids.to(_device)
+    # Sanitize quotes and apostrophes to prevent Parler-TTS gibberish
+    clean_text = text.replace("'", "").replace('"', "").replace("`", "").replace("’", "").replace("“", "").replace("”", "")
+    clean_desc = description.replace("'", "").replace('"', "").replace("`", "").replace("’", "").replace("“", "").replace("”", "")
+
+    input_ids        = _tokenizer(clean_desc,  return_tensors="pt").input_ids.to(_device)
+    prompt_input_ids = _tokenizer(clean_text, return_tensors="pt").input_ids.to(_device)
 
     with torch.no_grad():
         generation = _model.generate(

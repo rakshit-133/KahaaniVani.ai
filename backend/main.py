@@ -42,7 +42,7 @@ app.add_middleware(
 class SynthesizeRequest(BaseModel):
     text: str
     gender: str = "female"          # "male" | "female"
-    age_range: str = "26-40"        # "0-5" | "6-10" | "11-17" | "18-25" | "26-40" | "41-60" | "61+"
+    voice_actor: str = ""           # Specific voice actor name
 
 
 class AnalyzeRequest(BaseModel):
@@ -121,10 +121,6 @@ def synthesize_speech(req: SynthesizeRequest):
     if req.gender not in ("male", "female"):
         raise HTTPException(status_code=400, detail="gender must be 'male' or 'female'.")
 
-    valid_age_ranges = ("0-5", "6-10", "11-17", "18-25", "26-40", "41-60", "61+")
-    if req.age_range not in valid_age_ranges:
-        raise HTTPException(status_code=400, detail=f"age_range must be one of {valid_age_ranges}.")
-
     def event_generator():
         chunks = split_into_chunks(req.text)
         embeddings = embed_sentences(chunks)
@@ -143,7 +139,7 @@ def synthesize_speech(req: SynthesizeRequest):
                 emotions,
                 vad,
                 req.gender,
-                req.age_range,
+                req.voice_actor,
             )
 
             # Step 4 — synthesize audio

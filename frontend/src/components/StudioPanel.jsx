@@ -9,14 +9,18 @@ const GENDER_OPTIONS = [
   { value: 'male',   label: 'Male'   },
 ];
 
-const AGE_OPTIONS = [
-  { value: '0-5',   label: '0–5 yrs   (Child)'      },
-  { value: '6-10',  label: '6–10 yrs  (Child)'      },
-  { value: '11-17', label: '11–17 yrs (Teen)'        },
-  { value: '18-25', label: '18–25 yrs (Young Adult)' },
-  { value: '26-40', label: '26–40 yrs (Adult)'       },
-  { value: '41-60', label: '41–60 yrs (Middle-aged)' },
-  { value: '61+',   label: '61+ yrs   (Senior)'      },
+const FEMALE_VOICES = [
+  { value: 'Laura', label: 'Laura (Standard)' },
+  { value: 'Lea', label: 'Lea (Young/Warm)' },
+  { value: 'Barbara', label: 'Barbara (Mature/Firm)' },
+  { value: 'Emily', label: 'Emily (Soft)' }
+];
+
+const MALE_VOICES = [
+  { value: 'Jon', label: 'Jon (Standard)' },
+  { value: 'Gary', label: 'Gary (Deep/Warm)' },
+  { value: 'Rick', label: 'Rick (Commanding)' },
+  { value: 'Ryan', label: 'Ryan (Youthful)' }
 ];
 
 const SAMPLE_TEXT = `The morning light filtered through the curtains as Maya sat alone at her kitchen table. She wrapped her hands around the warm mug, letting the steam curl upward like a slow exhale.
@@ -28,7 +32,7 @@ Outside, a car horn blared. Somewhere down the hall, a door clicked shut. And th
 export default function StudioPanel({ toast }) {
   const [text, setText]           = useState('');
   const [gender, setGender]       = useState('female');
-  const [ageRange, setAgeRange]   = useState('26-40');
+  const [voiceActor, setVoiceActor] = useState('Laura');
 
   const [analyzeState, setAnalyzeState] = useState('idle'); // idle | loading | done | error
   const [synthState, setSynthState]     = useState('idle');
@@ -89,7 +93,14 @@ export default function StudioPanel({ toast }) {
     }
     setSynthState('loading');
     setAudioChunks([]);
-    setEmotionChunks([]);
+    
+    // Preserve existing analysis but clear out previous audio so we can update in place
+    if (emotionChunks.length > 0) {
+      setEmotionChunks(prev => prev.map(c => ({ ...c, audio_b64: undefined, voice_description: undefined })));
+    } else {
+      setEmotionChunks([]);
+    }
+    
     setCombinedAudio('');
     setShowAudio(true); // show section immediately
 
@@ -98,17 +109,23 @@ export default function StudioPanel({ toast }) {
       await synthesizeTextStream(
         text.trim(), 
         gender, 
-        ageRange,
+        voiceActor,
         (chunk) => {
-          // append new chunk
+          // append new chunk audio
           setAudioChunks(prev => [...prev, chunk]);
+          
           setEmotionChunks(prev => {
-            // only add if it's not already from analyze phase
-            if (prev.length > 0 && prev[0].audio_b64) {
-              return [...prev, chunk];
+            // Find the first chunk with matching text that hasn't received audio yet
+            const idx = prev.findIndex(c => c.text === chunk.text && !c.audio_b64);
+            if (idx !== -1) {
+              const next = [...prev];
+              next[idx] = chunk;
+              return next;
             }
+            // If not found (e.g. didn't analyze first), append it
             return [...prev, chunk];
           });
+          
           // ensure analyze phase UI switches over
           setAnalyzeState('done');
         },
@@ -222,7 +239,11 @@ export default function StudioPanel({ toast }) {
                       id="gender-select"
                       className="form-select"
                       value={gender}
-                      onChange={e => setGender(e.target.value)}
+                      onChange={e => {
+                        const newGender = e.target.value;
+                        setGender(newGender);
+                        setVoiceActor(newGender === 'female' ? 'Laura' : 'Jon');
+                      }}
                     >
                       {GENDER_OPTIONS.map(o => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -231,17 +252,17 @@ export default function StudioPanel({ toast }) {
                   </div>
                 </div>
 
-                {/* Age Range dropdown */}
+                {/* Voice Actor dropdown */}
                 <div className="voice-config__field">
-                  <label className="form-label" htmlFor="age-select">Age Range</label>
+                  <label className="form-label" htmlFor="voice-select">Voice Actor</label>
                   <div className="select-wrapper">
                     <select
-                      id="age-select"
+                      id="voice-select"
                       className="form-select"
-                      value={ageRange}
-                      onChange={e => setAgeRange(e.target.value)}
+                      value={voiceActor}
+                      onChange={e => setVoiceActor(e.target.value)}
                     >
-                      {AGE_OPTIONS.map(o => (
+                      {(gender === 'female' ? FEMALE_VOICES : MALE_VOICES).map(o => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
