@@ -1,9 +1,11 @@
 import gc
+import os
 import numpy as np
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 
@@ -178,3 +180,11 @@ def synthesize_speech(req: SynthesizeRequest):
         yield f"data: {json.dumps({'type': 'done', 'combined_audio_b64': combined_b64})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ── Serve Frontend (For Docker/HF Spaces Deployment) ───────────────────────
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
+else:
+    print(f"Warning: Frontend build not found at {frontend_path}. API is running, but UI is unavailable.")
