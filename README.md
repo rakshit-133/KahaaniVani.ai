@@ -41,7 +41,7 @@ flowchart TD
 
     subgraph "Synthesis Layer"
         G --> H[Parler-TTS Mini\nNeural Synthesis]
-        B -.->|Raw Text (Sanitized)| H
+        B -->|Raw Text| H
     end
 
     H --> I[🎵 Server-Sent Events (SSE)\nAudio Stream]
